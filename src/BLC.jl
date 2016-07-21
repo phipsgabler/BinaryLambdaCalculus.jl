@@ -3,6 +3,8 @@ module BLC
 using Lazy
 using PEGParser
 
+import Base
+
 ######################
 # DEFINITIONS OF TERMS
 ######################
@@ -42,6 +44,18 @@ immutable IVar <: IndexedLambda
     name :: Integer
 end
 
+
+Base.string(expr::Abs) = "(λ$(expr.variable)." * string(expr.body) * ")"
+Base.string(expr::App) = "($(string(expr.car)) $(string(expr.cdr)))"
+Base.string(expr::Var) = expr.name
+Base.show(io::IO, expr::Lambda) = print(io, string(expr))
+#Base.print(io::IO, expr::Lambda) = print(io, string(expr))
+
+Base.string(expr::IAbs) = "(λ." * string(expr.body) * ")"
+Base.string(expr::IApp) = "$(string(expr.car)) $(string(expr.cdr))"
+Base.string(expr::IVar) = string(expr.name)
+Base.show(io::IO, expr::IndexedLambda) = print(io, string(expr))
+#Base.print(io::IO, expr::IndexedLambda) = print(io, string(expr))
 
 # convenience macros for writing that stuff in better syntax
 export @named_term, @indexed_term
@@ -111,7 +125,12 @@ freevars(expr :: App) = union(freevars(expr.car), freevars(expr.cdr))
 export fromdebruijn
 
 function fromdebruijn(expr :: IndexedLambda)
-    available_names = Lazy.repeatedly(() -> string(gensym()))
+    available_names = @lazy Lazy.repeatedly(() -> string(gensym()))
+    return fromdebruijn_helper(expr, available_names, [])
+end
+
+function fromdebruijn(expr :: IndexedLambda, names)
+    available_names = @lazy Lazy.seq(names) * makenames(names, 0)
     return fromdebruijn_helper(expr, available_names, [])
 end
 
@@ -141,6 +160,7 @@ function fromdebruijn_helper(expr :: IApp, available_names, used_names)
     return App(l, r)
 end
 
+makenames(names, i::Integer) = @lazy Lazy.map(n -> n * string(i), names) * makenames(names, i+1)
 
 ####################################
 # ENCODING/DECODING OF INDEXED TERMS
@@ -176,59 +196,9 @@ end
 # COUNTING/UNRANKING OF TERMS
 #############################
 
-export tromp, unrank
+export tromp, unrank, terms
 
-function tromp(m :: Integer, n :: Integer, T :: Type = UInt64)
-    return tromptable(m, n, T)[n+1, m+1]
-end
+include("tromp.jl")
 
-function unrank(m :: Integer, n :: Integer, k :: Integer, T :: Type = UInt64)
-    assert(m >= 0)
-    assert(n >= 0)
-    assert(k >= 0)
-
-    table = tromptable(m, n, T)
-
-    function go(m, n, k)
-        if m >= n-1 && k == table[n+1, m+1]
-            return IVar(n-1)
-        elseif k <= table[n-1, m+2]
-            return IAbs(go(m+1, n-2, k))
-        else
-            function unrankApp(n, j, h)
-                tmnj = table[n-j+1, m+1]
-                tmjtmnj = table[j+1, m+1] * tmnj
-
-                if h <= tmjtmnj
-                    dv, rm = divrem(h-1, tmnj)
-                    return IApp(go(m, j, dv+1), go(m, n-j, rm+1))
-                else
-                    return unrankApp(n, j+1, h-tmjtmnj)
-                end
-            end
-
-            return unrankApp(n-2, 0, k-table[n-1, m+2])
-        end
-    end
-
-    return go(m, n, k)
-end
-
-
-# the dynamic programming version of the recursive algorithm
-function tromptable(m :: Integer, n :: Integer, T :: Type = UInt64)
-    assert(m >= 0)
-    assert(n >= 0)
-
-    values = zeros(T, n+1, (n÷2)+2)
-    
-    for i = 2:n, j = 0:(n÷2)
-        ti = values[1:(i-1), j+1]
-        s = dot(ti, reverse(ti))
-        values[i+1, j+1] = T(i-2 < j) + values[i-1, j+2] + s
-    end
-    
-    return values
-end
 
 end
