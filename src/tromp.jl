@@ -1,9 +1,9 @@
 # OUTER INTERFACE
-function tromp(m :: Integer, n :: Integer, T :: Type = UInt64)
+function tromp(m::Integer, n::Integer, T::Type = Int)
     return tromptable(m, n, T)[n+1, m+1]
 end
 
-function unrank(m :: Integer, n :: Integer, k :: Integer, T :: Type = UInt64)
+function unrank(m::Integer, n::Integer, k::Integer, T::Type = Int)
     @assert(m >= 0)
     @assert(n >= 0)
     @assert(k >= 0)
@@ -19,7 +19,7 @@ import Lazy.getindex
 getindex(l::Lazy.List, i::Integer) = i <= 1 ? first(l) : tail(l)[i-1]
 
 # the dynamic programming version of the recursive algorithm
-function tromptable(m :: Integer, n :: Integer, T :: Type = UInt64)
+function tromptable(m::Integer, n::Integer, T::Type = Int)
     @assert(m >= 0)
     @assert(n >= 0)
 
@@ -59,7 +59,7 @@ end
 
 # ITERATOR FOR TERMS
 
-terms(m :: Integer, n :: Integer, T :: Type = UInt64) =
+terms(m::Integer, n::Integer, T::Type = Int) =
     TermsIterator{T}(m, n, tromptable(m, n, T))
 
 

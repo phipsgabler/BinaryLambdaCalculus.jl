@@ -49,39 +49,43 @@ Base.string(expr::Abs) = "(λ$(expr.variable)." * string(expr.body) * ")"
 Base.string(expr::App) = "($(string(expr.car)) $(string(expr.cdr)))"
 Base.string(expr::Var) = expr.name
 Base.show(io::IO, expr::Lambda) = print(io, string(expr))
-#Base.print(io::IO, expr::Lambda) = print(io, string(expr))
 
 Base.string(expr::IAbs) = "(λ." * string(expr.body) * ")"
 Base.string(expr::IApp) = "$(string(expr.car)) $(string(expr.cdr))"
 Base.string(expr::IVar) = string(expr.name)
 Base.show(io::IO, expr::IndexedLambda) = print(io, string(expr))
-#Base.print(io::IO, expr::IndexedLambda) = print(io, string(expr))
+
 
 # convenience macros for writing that stuff in better syntax
-export @named_term, @indexed_term
+export @named_term, @indexed_term, toast, fromast
 
 macro named_term(expr) 
-    return :($(toast(expr)))
+    return :($(fromast(expr)))
 end
 
 macro indexed_term(expr)
-    return :($(todebruijn(toast(expr))))
+    return :($(todebruijn(fromast(expr))))
 end
 
-toast(v :: Symbol) = Var(string(v))
+fromast(v::Symbol) = Var(string(v))
 
-function toast(expr :: Expr)
+function fromast(expr::Expr)
     if expr.head == :call
-        return foldl(App, map(toast, expr.args))
+        return foldl(App, map(fromast, expr.args))
     elseif expr.head == :->
-        return Abs(string(expr.args[1]), toast(expr.args[2]));
+        return Abs(string(expr.args[1]), fromast(expr.args[2]));
     elseif expr.head == :block && length(expr.args) == 2
-        # such trivial blocks are  used by the parser in lambdas
-        return toast(expr.args[end])
+        # such trivial blocks are used by the parser in lambdas
+        return fromast(expr.args[end])
     else
         error("unhandled syntax: $expr)")
     end
 end
+
+# conversion to Julia ast
+toast(expr::Abs) = :($(symbol(expr.variable)) -> $(toast(expr.body)))
+toast(expr::App) = :($(toast(expr.car))($(toast(expr.cdr))))
+toast(expr::Var) = symbol(expr.name)
 
 
 ###########################################
@@ -92,28 +96,28 @@ end
 
 export todebruijn
 
-todebruijn(expr :: Lambda) = todebruijn_helper(expr, collect(freevars(expr)))
+todebruijn(expr::Lambda) = todebruijn_helper(expr, collect(freevars(expr)))
 
 
-function todebruijn_helper(expr :: Var, names)
+function todebruijn_helper(expr::Var, names)
     i = findfirst(names, expr.name)
     return IVar(i)
 end
 
-function todebruijn_helper(expr :: Abs, names)
+function todebruijn_helper(expr::Abs, names)
     body = todebruijn_helper(expr.body, [expr.variable; names])
     return IAbs(body)
 end
 
-function todebruijn_helper(expr :: App, names)
+function todebruijn_helper(expr::App, names)
     l = todebruijn_helper(expr.car, names)
     r = todebruijn_helper(expr.cdr, names)
     return IApp(l, r)
 end
 
-freevars(expr :: Var) = Set([expr.name])
-freevars(expr :: Abs) = setdiff(freevars(expr.body), Set([expr.variable]))
-freevars(expr :: App) = union(freevars(expr.car), freevars(expr.cdr))
+freevars(expr::Var) = Set([expr.name])
+freevars(expr::Abs) = setdiff(freevars(expr.body), Set([expr.variable]))
+freevars(expr::App) = union(freevars(expr.car), freevars(expr.cdr))
 
 
 ###########################################
@@ -124,18 +128,18 @@ freevars(expr :: App) = union(freevars(expr.car), freevars(expr.cdr))
 
 export fromdebruijn
 
-function fromdebruijn(expr :: IndexedLambda)
+function fromdebruijn(expr::IndexedLambda)
     available_names = @lazy Lazy.repeatedly(() -> string(gensym()))
     return fromdebruijn_helper(expr, available_names, [])
 end
 
-function fromdebruijn(expr :: IndexedLambda, names)
+function fromdebruijn(expr::IndexedLambda, names)
     available_names = @lazy Lazy.seq(names) * makenames(names, 0)
     return fromdebruijn_helper(expr, available_names, [])
 end
 
 
-function fromdebruijn_helper(expr :: IVar, available_names, used_names)
+function fromdebruijn_helper(expr::IVar, available_names, used_names)
     level = length(used_names)
     return if 1 <= expr.name <= level
         return Var(used_names[expr.name])
@@ -146,7 +150,7 @@ function fromdebruijn_helper(expr :: IVar, available_names, used_names)
     end
 end
 
-function fromdebruijn_helper(expr :: IAbs, available_names, used_names)
+function fromdebruijn_helper(expr::IAbs, available_names, used_names)
     new_name = available_names[1]
     body = fromdebruijn_helper(expr.body,
                                Lazy.drop(1, available_names),
@@ -154,7 +158,7 @@ function fromdebruijn_helper(expr :: IAbs, available_names, used_names)
     return Abs(new_name, body)
 end
 
-function fromdebruijn_helper(expr :: IApp, available_names, used_names)
+function fromdebruijn_helper(expr::IApp, available_names, used_names)
     l = fromdebruijn_helper(expr.car, available_names, used_names)
     r = fromdebruijn_helper(expr.cdr, available_names, used_names)
     return App(l, r)
@@ -168,9 +172,9 @@ makenames(names, i::Integer) = @lazy Lazy.map(n -> n * string(i), names) * maken
 
 export encode, decode
 
-encode(var :: IVar) = "\x01" ^ var.name * "\0"
-encode(abs :: IAbs) = "\0\0" * encode(abs.body)
-encode(app :: IApp) = "\0\x01" * encode(app.car) * encode(app.cdr)
+encode(var::IVar) = "\x01" ^ var.name * "\0"
+encode(abs::IAbs) = "\0\0" * encode(abs.body)
+encode(app::IApp) = "\0\x01" * encode(app.car) * encode(app.cdr)
 
 
 @grammar blc begin
@@ -181,7 +185,7 @@ encode(app :: IApp) = "\0\x01" * encode(app.car) * encode(app.cdr)
     app = ("\0\x01" + term + term){ IApp(_2, _3) }
 end
 
-function decode(bytes :: AbstractString, onerror = e -> nothing)
+function decode(bytes::AbstractString, onerror = e -> return)
     parser_result = parse(blc, bytes)
     if parser_result[3] == nothing
         return Nullable(parser_result[1])
