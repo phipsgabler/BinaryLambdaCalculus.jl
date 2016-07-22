@@ -12,6 +12,7 @@ import Base
 export Lambda, Abs, App, Var
 export IndexedLambda, IAbs, IApp, IVar
 
+"Representation of named lambda terms."
 abstract Lambda
 
 immutable Abs <: Lambda
@@ -28,7 +29,7 @@ immutable Var <: Lambda
     name :: AbstractString
 end
     
-
+"Representation of De Bruijn indexed lambda terms."
 abstract IndexedLambda
 
 immutable IAbs <: IndexedLambda
@@ -59,10 +60,12 @@ Base.show(io::IO, expr::IndexedLambda) = print(io, string(expr))
 # convenience macros for writing that stuff in better syntax
 export @named_term, @indexed_term, toast, fromast
 
+"Convert a Julia lambda into a `Lambda`, keeping the names used."
 macro named_term(expr) 
     return :($(fromast(expr)))
 end
 
+"Convert a Julia lambda into an `IndexedLambda`, discarding the names used."
 macro indexed_term(expr)
     return :($(todebruijn(fromast(expr))))
 end
@@ -92,10 +95,15 @@ toast(expr::Var) = symbol(expr.name)
 # CONVERSION NAMED TERMS -> DE BRUIJN TERMS
 ###########################################
 
-# NOTE: indices begin at 1, not 0!
+# the conversions functions are mostly a translation of this code:
+# https://gist.github.com/Cedev/087c3e50ecc53e0f04e9,
+# extended to work with an infinite reservoir of free variables
+
+# NOTE: the De Bruijn indices begin at 1, not 0!
 
 export todebruijn
 
+"Convert a named term into its De Bruijn representation."
 todebruijn(expr::Lambda) = todebruijn_helper(expr, collect(freevars(expr)))
 
 
@@ -128,11 +136,22 @@ freevars(expr::App) = union(freevars(expr.car), freevars(expr.cdr))
 
 export fromdebruijn
 
+"""
+Convert an indexed term to a named term.
+
+If free variables occur, they are given new, unique names.
+"""
 function fromdebruijn(expr::IndexedLambda)
     available_names = @lazy Lazy.repeatedly(() -> string(gensym()))
     return fromdebruijn_helper(expr, available_names, [])
 end
 
+"""
+Convert an indexed term to a named term.
+
+If free variables occur, they are given new, unique names based on the
+given `names`; these are suffixed, if not sufficient.
+"""
 function fromdebruijn(expr::IndexedLambda, names)
     available_names = @lazy Lazy.seq(names) * makenames(names, 0)
     return fromdebruijn_helper(expr, available_names, [])
@@ -185,8 +204,15 @@ encode(app::IApp) = "\0\x01" * encode(app.car) * encode(app.cdr)
     app = ("\0\x01" + term + term){ IApp(_2, _3) }
 end
 
+"""
+Parse a De Bruijn indexed term from its binary representation.
+
+Returns a `Nullable{IndexedLambda}`, depending on the success of the parsing.
+On error, the function `onerror` is called on the error value of the parser.
+"""
 function decode(bytes::AbstractString, onerror = e -> return)
     parser_result = parse(blc, bytes)
+    
     if parser_result[3] == nothing
         return Nullable(parser_result[1])
     else
