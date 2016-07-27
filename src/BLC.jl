@@ -153,7 +153,8 @@ If free variables occur, they are given new, unique names based on the
 given `names`; these are suffixed, if not sufficient.
 """
 function fromdebruijn(expr::IndexedLambda, names)
-    available_names = @lazy Lazy.seq(names) * makenames(names, 0)
+    unique_names = unique(names)
+    available_names = @lazy Lazy.seq(unique_names) * makenames(unique_names, 0)
     return fromdebruijn_helper(expr, available_names, [])
 end
 
@@ -183,7 +184,10 @@ function fromdebruijn_helper(expr::IApp, available_names, used_names)
     return App(l, r)
 end
 
-makenames(names, i::Integer) = @lazy Lazy.map(n -> n * string(i), names) * makenames(names, i+1)
+# produce an infinite sequence of unique names,
+# by appending integers to the given names
+makenames(names, i::Integer) =
+    @lazy Lazy.map(n -> n * string(i), names) * makenames(names, i+1)
 
 ####################################
 # ENCODING/DECODING OF INDEXED TERMS
