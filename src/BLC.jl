@@ -45,15 +45,13 @@ immutable IVar <: IndexedLambda
 end
 
 
-Base.string(expr::Abs) = "(λ$(expr.variable)." * string(expr.body) * ")"
-Base.string(expr::App) = "($(string(expr.car)) $(string(expr.cdr)))"
-Base.string(expr::Var) = expr.name
-Base.show(io::IO, expr::Lambda) = print(io, string(expr))
+Base.show(io::IO, expr::Abs) = print(io, "(λ$(expr.variable).$(expr.body))")
+Base.show(io::IO, expr::App) = print(io, "($(expr.car) $(expr.cdr))")
+Base.show(io::IO, expr::Var) = print(io, expr.name)
 
-Base.string(expr::IAbs) = "(λ." * string(expr.body) * ")"
-Base.string(expr::IApp) = "$(string(expr.car)) $(string(expr.cdr))"
-Base.string(expr::IVar) = string(expr.name)
-Base.show(io::IO, expr::IndexedLambda) = print(io, string(expr))
+Base.show(io::IO, expr::IAbs) = print(io, "(λ.$(expr.body)")
+Base.show(io::IO, expr::IApp) = print(io, "$(expr.car) $(expr.cdr)")
+Base.show(io::IO, expr::IVar) = print(io, expr.name)
 
 
 # convenience macros for writing that stuff in better syntax
