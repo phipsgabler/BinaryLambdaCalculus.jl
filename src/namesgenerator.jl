@@ -24,14 +24,14 @@ function Base.next(it::NamesGenerator, state)
         s = start(it.names)
     end
 
-    return newname, (i, s)
+    return Symbol(newname), (i, s)
 end
 
 Base.done(it::NamesGenerator, state) = false
 Base.iteratorsize(::Type{NamesGenerator}) = Base.IsInfinite()
 Base.iteratoreltype(::Type{NamesGenerator}) = Base.HasEltype()
-Base.eltype(::Type{NamesGenerator}) = String
+Base.eltype(::Type{NamesGenerator}) = Symbol
 
 generatenames(names::Array{String}) = NamesGenerator(unique(names))
 
-generatenames(tag::String) = ("$(tag)$(i)" for i in countfrom(0))
+generatenames(tag::String) = (Symbol("$(tag)$(i)") for i in countfrom(0))

@@ -17,7 +17,7 @@ export IndexedLambda, IAbs, IApp, IVar
 abstract Lambda
 
 immutable Abs <: Lambda
-    variable :: AbstractString
+    variable :: Symbol
     body :: Lambda
 end
 
@@ -27,7 +27,7 @@ immutable App <: Lambda
 end
 
 immutable Var <: Lambda
-    name :: AbstractString
+    name :: Symbol
 end
 
 
@@ -44,7 +44,7 @@ immutable IApp <: IndexedLambda
 end
 
 immutable IVar <: IndexedLambda
-    index :: Integer
+    index :: Int
 end
 
 
@@ -70,13 +70,13 @@ macro indexed_term(expr)
     return todebruijn(fromast(expr))
 end
 
-fromast(v::Symbol)::Lambda = Var(string(v))
+fromast(v::Symbol)::Lambda = Var(v)
 
 function fromast(expr::Expr)::Lambda
     if expr.head == :call
         return foldl(App, map(fromast, expr.args))
     elseif expr.head == :->
-        return Abs(string(expr.args[1]), fromast(expr.args[2]));
+        return Abs(expr.args[1], fromast(expr.args[2]));
     elseif expr.head == :block && length(expr.args) == 2
         # such trivial blocks are used by the parser in lambdas
         return fromast(expr.args[end])
@@ -130,9 +130,9 @@ function todebruijn_helper(expr::App, names)::IndexedLambda
     return IApp(l, r)
 end
 
-freevars(expr::Var)::Set{String} = Set([expr.name])
-freevars(expr::Abs)::Set{String} = setdiff(freevars(expr.body), Set([expr.variable]))
-freevars(expr::App)::Set{String} = union(freevars(expr.car), freevars(expr.cdr))
+freevars(expr::Var)::Set{Symbol} = Set([expr.name])
+freevars(expr::Abs)::Set{Symbol} = setdiff(freevars(expr.body), Set([expr.variable]))
+freevars(expr::App)::Set{Symbol} = union(freevars(expr.car), freevars(expr.cdr))
 
 
 ###########################################
