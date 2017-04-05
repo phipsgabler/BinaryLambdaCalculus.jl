@@ -39,7 +39,7 @@ function tromptable(m::Integer, n::Integer, T::Type = Int)
     @assert(m >= 0)
     @assert(n >= 0)
 
-    values = zeros(T, n+1, (n÷2)+2)
+    values = zeros(T, n+1, (n÷2)+1)
     
     for i = 2:n, j = 0:(n÷2)
         ti = values[1:(i-1), j+1]
@@ -82,11 +82,6 @@ function unrank_with{T <: Integer}(m::Integer, n::Integer, k::Integer, table::Ar
         return unrankApp(n-2, 0, k-table[n-1, m+2])
     end
 end
-
-
-# this is a patch needed to be able to use, eg, UInt
-import Lazy.getindex
-getindex(l::Lazy.List, i::Integer) = i <= 1 ? first(l) : tail(l)[i-1]
 
 
 #################

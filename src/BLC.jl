@@ -1,8 +1,9 @@
 module BLC
 
-using Lazy
+using Iterators
 
 import Base
+
 
 ######################
 # DEFINITIONS OF TERMS
@@ -10,6 +11,7 @@ import Base
 
 export Lambda, Abs, App, Var
 export IndexedLambda, IAbs, IApp, IVar
+
 
 "Representation of named lambda terms."
 abstract Lambda
@@ -27,7 +29,8 @@ end
 immutable Var <: Lambda
     name :: AbstractString
 end
-    
+
+
 "Representation of De Bruijn indexed lambda terms."
 abstract IndexedLambda
 
@@ -41,7 +44,7 @@ immutable IApp <: IndexedLambda
 end
 
 immutable IVar <: IndexedLambda
-    name :: Integer
+    index :: Integer
 end
 
 
@@ -49,13 +52,13 @@ Base.show(io::IO, expr::Abs) = print(io, "(λ$(expr.variable).$(expr.body))")
 Base.show(io::IO, expr::App) = print(io, "($(expr.car) $(expr.cdr))")
 Base.show(io::IO, expr::Var) = print(io, expr.name)
 
-Base.show(io::IO, expr::IAbs) = print(io, "(λ.$(expr.body)")
-Base.show(io::IO, expr::IApp) = print(io, "$(expr.car) $(expr.cdr)")
-Base.show(io::IO, expr::IVar) = print(io, expr.name)
+Base.show(io::IO, expr::IAbs) = print(io, "(λ.$(expr.body))")
+Base.show(io::IO, expr::IApp) = print(io, "($(expr.car) $(expr.cdr))")
+Base.show(io::IO, expr::IVar) = print(io, expr.index)
 
 
 # convenience macros for writing that stuff in better syntax
-export @named_term, @indexed_term, toast, fromast
+export @named_term, @indexed_term
 
 "Convert a Julia lambda into a `Lambda`, keeping the names used."
 macro named_term(expr) 
@@ -67,9 +70,9 @@ macro indexed_term(expr)
     return :($(todebruijn(fromast(expr))))
 end
 
-fromast(v::Symbol) = Var(string(v))
+fromast(v::Symbol)::Lambda = Var(string(v))
 
-function fromast(expr::Expr)
+function fromast(expr::Expr)::Lambda
     if expr.head == :call
         return foldl(App, map(fromast, expr.args))
     elseif expr.head == :->
@@ -83,9 +86,9 @@ function fromast(expr::Expr)
 end
 
 # conversion to Julia ast
-toast(expr::Abs) = :($(symbol(expr.variable)) -> $(toast(expr.body)))
-toast(expr::App) = :($(toast(expr.car))($(toast(expr.cdr))))
-toast(expr::Var) = symbol(expr.name)
+toast(expr::Abs)::Expr = :($(symbol(expr.variable)) -> $(toast(expr.body)))
+toast(expr::App)::Expr = :($(toast(expr.car))($(toast(expr.cdr))))
+toast(expr::Var)::Expr = symbol(expr.name)
 
 
 ###########################################
@@ -100,29 +103,33 @@ toast(expr::Var) = symbol(expr.name)
 
 export todebruijn
 
-"Convert a named term into its De Bruijn representation."
-todebruijn(expr::Lambda) = todebruijn_helper(expr, collect(freevars(expr)))
+"""
+   todebruijn(expr::Lambda)::IndexedLambda 
+
+Convert a named term into its De Bruijn representation.
+"""
+todebruijn(expr::Lambda)::IndexedLambda = todebruijn_helper(expr, collect(freevars(expr)))
 
 
-function todebruijn_helper(expr::Var, names)
+function todebruijn_helper(expr::Var, names)::IndexedLambda
     i = findfirst(names, expr.name)
     return IVar(i)
 end
 
-function todebruijn_helper(expr::Abs, names)
+function todebruijn_helper(expr::Abs, names)::IndexedLambda
     body = todebruijn_helper(expr.body, [expr.variable; names])
     return IAbs(body)
 end
 
-function todebruijn_helper(expr::App, names)
+function todebruijn_helper(expr::App, names)::IndexedLambda
     l = todebruijn_helper(expr.car, names)
     r = todebruijn_helper(expr.cdr, names)
     return IApp(l, r)
 end
 
-freevars(expr::Var) = Set([expr.name])
-freevars(expr::Abs) = setdiff(freevars(expr.body), Set([expr.variable]))
-freevars(expr::App) = union(freevars(expr.car), freevars(expr.cdr))
+freevars(expr::Var)::Set{String} = Set([expr.name])
+freevars(expr::Abs)::Set{String} = setdiff(freevars(expr.body), Set([expr.variable]))
+freevars(expr::App)::Set{String} = union(freevars(expr.car), freevars(expr.cdr))
 
 
 ###########################################
@@ -133,58 +140,57 @@ freevars(expr::App) = union(freevars(expr.car), freevars(expr.cdr))
 
 export fromdebruijn
 
-"""
-Convert an indexed term to a named term.
+include("namesgenerator.jl")
 
-If free variables occur, they are given new, unique names.
-"""
-function fromdebruijn(expr::IndexedLambda)
-    available_names = @lazy Lazy.repeatedly(() -> string(gensym()))
-    return fromdebruijn_helper(expr, available_names, [])
-end
 
 """
-Convert an indexed term to a named term.
+    fromdebruijn(expr::IndexedLambda[, tag::String])::Lambda
 
-If free variables occur, they are given new, unique names based on the
-given `names`; these are suffixed, if not sufficient.
+Convert an indexed term to a named term.  If free variables occur, they are given new, unique names,
+based on `tag`.
 """
-function fromdebruijn(expr::IndexedLambda, names)
-    unique_names = unique(names)
-    available_names = @lazy Lazy.seq(unique_names) * makenames(unique_names, 0)
-    return fromdebruijn_helper(expr, available_names, [])
+function fromdebruijn(expr::IndexedLambda, tag::String = "x")::Lambda
+    return fromdebruijn_helper(expr, generatenames(tag), [])
 end
 
 
-function fromdebruijn_helper(expr::IVar, available_names, used_names)
+"""
+    fromdebruijn(expr::IndexedLambda, names)::Lambda
+
+Convert an indexed term to a named term. If free variables occur, they are given new, unique names
+based on the given `names`; these are suffixed, if not sufficient.
+"""
+function fromdebruijn(expr::IndexedLambda, names)::Lambda
+    return fromdebruijn_helper(expr, generatenames(names), [])
+end
+
+
+function fromdebruijn_helper(expr::IVar, available_names, used_names)::Lambda
     level = length(used_names)
-    return if 1 <= expr.name <= level
-        return Var(used_names[expr.name])
-    elseif level < expr.name
-        return Var(available_names[expr.name - level])
+    
+    if 1 <= expr.index <= level
+        return Var(used_names[expr.index])
+    elseif level < expr.index
+        return Var(nth(available_names, expr.index - level))
     else
-        error("invalid index")
+        error("Invalid index: $(expr.index)")
     end
 end
 
-function fromdebruijn_helper(expr::IAbs, available_names, used_names)
-    new_name = available_names[1]
+function fromdebruijn_helper(expr::IAbs, available_names, used_names)::Lambda
+    new_name = nth(available_names, 1)
     body = fromdebruijn_helper(expr.body,
-                               Lazy.drop(1, available_names),
+                               drop(available_names, 1),
                                [new_name; used_names])
     return Abs(new_name, body)
 end
 
-function fromdebruijn_helper(expr::IApp, available_names, used_names)
+function fromdebruijn_helper(expr::IApp, available_names, used_names)::Lambda
     l = fromdebruijn_helper(expr.car, available_names, used_names)
     r = fromdebruijn_helper(expr.cdr, available_names, used_names)
     return App(l, r)
 end
 
-# produce an infinite sequence of unique names,
-# by appending integers to the given names
-makenames(names, i::Integer) =
-    @lazy Lazy.map(n -> n * string(i), names) * makenames(names, i+1)
 
 ####################################
 # ENCODING/DECODING OF INDEXED TERMS
@@ -192,9 +198,9 @@ makenames(names, i::Integer) =
 
 export encode, decode
 
-encode(var::IVar) = "\x01" ^ var.name * "\0"
-encode(abs::IAbs) = "\0\0" * encode(abs.body)
-encode(app::IApp) = "\0\x01" * encode(app.car) * encode(app.cdr)
+encode(var::IVar)::String = "\x01" ^ var.name * "\0"
+encode(abs::IAbs)::String = "\0\0" * encode(abs.body)
+encode(app::IApp)::String = "\0\x01" * encode(app.car) * encode(app.cdr)
 
 
 # @grammar blc begin
