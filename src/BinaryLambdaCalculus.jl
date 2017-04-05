@@ -58,16 +58,16 @@ Base.show(io::IO, expr::IVar) = print(io, expr.index)
 
 
 # convenience macros for writing that stuff in better syntax
-export @named_term, @indexed_term
+export @named_term, @indexed_term, compile
 
 "Convert a Julia lambda into a `Lambda`, keeping the names used."
 macro named_term(expr) 
-    return :($(fromast(expr)))
+    return fromast(expr)
 end
 
 "Convert a Julia lambda into an `IndexedLambda`, discarding the names used."
 macro indexed_term(expr)
-    return :($(todebruijn(fromast(expr))))
+    return todebruijn(fromast(expr))
 end
 
 fromast(v::Symbol)::Lambda = Var(string(v))
@@ -86,9 +86,12 @@ function fromast(expr::Expr)::Lambda
 end
 
 # conversion to Julia ast
-toast(expr::Abs)::Expr = :($(symbol(expr.variable)) -> $(toast(expr.body)))
-toast(expr::App)::Expr = :($(toast(expr.car))($(toast(expr.cdr))))
-toast(expr::Var)::Expr = symbol(expr.name)
+toast(expr::Abs)::Expr = Expr(:->, Symbol(expr.variable), toast(expr.body))
+toast(expr::App)::Expr = Expr(:call, toast(expr.car), toast(expr.cdr))
+toast(expr::Var)::Symbol = Symbol(expr.name)
+
+compile(expr::Lambda) = toast(expr) |> eval
+compile(expr::IndexedLambda) = fromdebruijn(expr) |> toast |> eval
 
 
 ###########################################
