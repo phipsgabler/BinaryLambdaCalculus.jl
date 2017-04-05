@@ -10,6 +10,8 @@ Also note that that I did this to learn Julia, so don't complain about style ;)
 
 This currently depends on a [pull request](https://github.com/JuliaCollections/Iterators.jl/pull/101) of `Iterators`, which is hopefully fixed soon in their master.
 
+Also, the code for enumerating terms does not work quite, yet.
+
 ## License ##
 
 This work is licensed under an [MIT license](https://opensource.org/licenses/MIT).
