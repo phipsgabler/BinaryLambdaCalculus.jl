@@ -1,4 +1,4 @@
-module BLC
+module BinaryLambdaCalculus
 
 using Iterators
 
