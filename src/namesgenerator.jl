@@ -14,9 +14,9 @@ function Base.next(it::NamesGenerator, state)
     name, s = next(it.names, s)
 
     if i >= 0
-        newname = name * string(i)
+        newname = Symbol(name * string(i))
     else
-        newname = name
+        newname = Symbol(name)
     end
 
     if done(it.names, s)
@@ -24,7 +24,7 @@ function Base.next(it::NamesGenerator, state)
         s = start(it.names)
     end
 
-    return Symbol(newname), (i, s)
+    return newname, (i, s)
 end
 
 Base.done(it::NamesGenerator, state) = false

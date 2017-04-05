@@ -168,6 +168,8 @@ function fromdebruijn(expr::IndexedLambda, names)::Lambda
 end
 
 
+# TODO: turn used_names into a tree?
+
 function fromdebruijn_helper(expr::IVar, available_names, used_names)::Lambda
     level = length(used_names)
     
@@ -182,9 +184,7 @@ end
 
 function fromdebruijn_helper(expr::IAbs, available_names, used_names)::Lambda
     new_name = nth(available_names, 1)
-    body = fromdebruijn_helper(expr.body,
-                               drop(available_names, 1),
-                               [new_name; used_names])
+    body = fromdebruijn_helper(expr.body, drop(available_names, 1), [new_name; used_names])
     return Abs(new_name, body)
 end
 
