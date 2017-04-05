@@ -34,4 +34,4 @@ Base.eltype(::Type{NamesGenerator}) = String
 
 generatenames(names::Array{String}) = NamesGenerator(unique(names))
 
-generatenames(tag::String) = ("$(tag)$(i)" for i in iterate(x -> x + 1, 0))
+generatenames(tag::String) = ("$(tag)$(i)" for i in countfrom(0))
