@@ -4,6 +4,10 @@
 
 export tromp, tromp!, unrank, unrank!, terms
 
+# TODO:
+# - make k start from 0
+# - adapt getindex of TermsIterator
+
 
 ########################
 # COUNTING AND UNRANKING
@@ -129,13 +133,15 @@ end
 
 typealias TermsIteratorState Int
 
-Base.start{T}(t::TermsIterator{T}) = TermsIteratorState(1)
-Base.next{T}(t::TermsIterator{T}, state::TermsIteratorState) =
-    (unrank!(t.m, t.n, state, t.table), state + 1)
-Base.done{T}(t::TermsIterator{T}, state::TermsIteratorState) =
-    state > t.table[(t.m, t.n)]
+Base.start{T}(::TermsIterator{T}) = TermsIteratorState(1)
+Base.next{T}(it::TermsIterator{T}, state::TermsIteratorState) =
+    (unrank!(it.m, it.n, state, it.table), state + 1)
+Base.done{T}(it::TermsIterator{T}, state::TermsIteratorState) =
+    state > it.table[(it.m, it.n)]
 
 Base.iteratorsize{T}(::Type{TermsIterator{T}}) = Base.HasLength()
 Base.length{T}(t::TermsIterator{T}) = t.table[(t.m, t.n)]
 Base.iteratoreltype{T}(::Type{TermsIterator{T}}) = Base.HasEltype()
 Base.eltype{T}(::Type{TermsIterator{T}}) = IndexedLambda
+
+Base.getindex{T}(it::TermsIterator{T}, i::Integer) = unrank!(it.m, it.n, i, it.table)
