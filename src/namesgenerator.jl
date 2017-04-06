@@ -6,14 +6,14 @@ immutable NamesGenerator
 end
 
 function Base.start(it::NamesGenerator)
-    return -1, start(it.names)
+    return 0, start(it.names)
 end
 
 function Base.next(it::NamesGenerator, state)
     i, s = state
     name, s = next(it.names, s)
 
-    if i >= 0
+    if i > 0
         newname = Symbol(name * string(i))
     else
         newname = Symbol(name)
@@ -34,4 +34,4 @@ Base.eltype(::Type{NamesGenerator}) = Symbol
 
 generatenames(names::Array{String}) = NamesGenerator(unique(names))
 
-generatenames(tag::String) = (Symbol("$(tag)$(i)") for i in countfrom(0))
+generatenames(tag::String) = (Symbol("$(tag)$(i)") for i in countfrom(1))
