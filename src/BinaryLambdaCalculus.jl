@@ -207,8 +207,6 @@ include("coding.jl")
 # COUNTING/UNRANKING OF TERMS
 #############################
 
-export tromp, unrank, terms
-
 include("tromp.jl")
 
 
