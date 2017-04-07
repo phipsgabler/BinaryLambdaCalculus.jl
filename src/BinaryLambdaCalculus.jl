@@ -69,6 +69,7 @@ end
 
 "Convert a Julia lambda into an `IndexedLambda`, discarding the names used."
 macro indexed_term(expr)
+    # TODO: maybe remember the names in a private field
     return todebruijn(fromast(expr))
 end
 
@@ -200,8 +201,6 @@ end
 ####################################
 # ENCODING/DECODING OF INDEXED TERMS
 ####################################
-
-export encode, decode
 
 include("coding.jl")
 
