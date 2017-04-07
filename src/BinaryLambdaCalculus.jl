@@ -17,17 +17,17 @@ export IndexedLambda, IAbs, IApp, IVar
 abstract Lambda
 
 immutable Abs <: Lambda
-    variable :: Symbol
-    body :: Lambda
+    variable::Symbol
+    body::Lambda
 end
 
 immutable App <: Lambda
-    car :: Lambda
-    cdr :: Lambda
+    car::Lambda
+    cdr::Lambda
 end
 
 immutable Var <: Lambda
-    name :: Symbol
+    name::Symbol
 end
 
 
@@ -35,16 +35,18 @@ end
 abstract IndexedLambda
 
 immutable IAbs <: IndexedLambda
-    body :: IndexedLambda
+    body::IndexedLambda
 end
 
 immutable IApp <: IndexedLambda
-    car :: IndexedLambda
-    cdr :: IndexedLambda
+    car::IndexedLambda
+    cdr::IndexedLambda
 end
 
 immutable IVar <: IndexedLambda
-    index :: Int
+    index::UInt
+
+    IVar(i) = i > 0 ? new(i) : error("De Bruijn index must be greater zero")
 end
 
 
