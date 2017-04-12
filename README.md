@@ -9,7 +9,7 @@ Then, there are conversions to and from the binary representation of indexed ter
 from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf), which allow one, for example, to
 enumerate all lambda terms of a certain size.
 
-For examples, see the [experiments notebook](./experiments.ipynb). 
+For examples, see the [experiments notebook](./examples.ipynb). 
 
 Also note that that I did this to learn Julia, so don't complain about style ;)
 
