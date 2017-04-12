@@ -1,16 +1,23 @@
 # BinaryLambdaCalculus.jl #
 
-In this package, I'm playing around with the [Binary Lambda Calculus](https://en.wikipedia.org/wiki/Binary_lambda_calculus) (originally defined [here](http://drops.dagstuhl.de/opus/volltexte/2006/628/pdf/06051.TrompJohn.Paper.628.pdf)).  For a start, implements representations of named and De-Bruijn-indexed terms, and their conversions.  Then, there are conversions to and from the binary representation of indexed terms (which is the "binary" part).  And finally, I reimplemented the counting and unranking functions from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf), which allow one, for example, to enumerate all lambda terms of a certain size.
+In this package, I'm playing around with
+the [Binary Lambda Calculus](https://en.wikipedia.org/wiki/Binary_lambda_calculus) (originally
+defined [here](http://drops.dagstuhl.de/opus/volltexte/2006/628/pdf/06051.TrompJohn.Paper.628.pdf)).
+For a start, implements representations of named and De-Bruijn-indexed terms, and their conversions.
+Then, there are conversions to and from the binary representation of indexed terms (which is the
+"binary" part).  And finally, I reimplemented the counting and unranking functions
+from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf), which allow one, for example, to
+enumerate all lambda terms of a certain size.
 
 For examples, see the [experiments notebook](./experiments.ipynb). 
 
 Also note that that I did this to learn Julia, so don't complain about style ;)
 
-## Warning ##
+## Installation
 
-This currently depends on a [pull request](https://github.com/JuliaCollections/Iterators.jl/pull/101) of `Iterators`, which is hopefully fixed soon in their master.
-
-Also, the code for enumerating terms does not work quite, yet.
+```
+Pkg.clone("git@github.com:phipsgabler/BinaryLambdaCalculus.jl.git")
+```
 
 ## License ##
 
