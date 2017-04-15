@@ -19,10 +19,17 @@ encode(app::IApp)::String = "\x00\x01" * encode(app.car) * encode(app.cdr)
 
 Parse a De Bruijn indexed term from its binary representation.
 """
-function decode(input::AbstractString; onerror = throw)
+function decode(input::AbstractString; onsuccess = (x->x), onerror = throw)
     try
-        parse_whole(term, input)
+        onsuccess(parse_whole(term, input))
     catch parser_error
         onerror(parser_error)
     end
+end
+
+
+compress(term::IndexedLambda)::BitVector = BitVector([c == '\x01' for c in encode(term)])
+
+function decompress(compressed::BitVector; onsuccess = (x->x), onerror = throw)
+    decode(String(map(Char, compressed)); onsuccess = onsuccess, onerror = onerror)
 end
