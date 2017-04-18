@@ -41,7 +41,7 @@ function tromp!{T<:Integer}(m::Integer, n::Integer, table::Table{T})::T
     @assert(n >= 0)
 
     # Sₘ₀ = Sₘ₁ = 0
-    # Sₘₙ = [m ≥ n - 1] + Sₘ₊₁,ₙ₋₂ + ∑_{k=0}^{n-2} Sₘ,k Sₘ,ₙ₋ₖ
+    # Sₘₙ = [m ≥ n - 1] + Sₘ₊₁,ₙ₋₂ + ∑_{k=0}^{n-2} Sₘ,k Sₘ,ₙ₋₂₋ₖ
     get!(table, (m, n)) do
         if n <= 1
             return 0
