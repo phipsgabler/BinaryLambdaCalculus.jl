@@ -21,7 +21,7 @@ end
 
 for t in terms_ix
     @test todebruijn(fromdebruijn(t)) == t
-    @test decode(encode(t)) == t
+    @test decode(encode(stripnames(t))) == stripnames(t)
 end
 
 

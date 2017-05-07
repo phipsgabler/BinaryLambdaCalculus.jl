@@ -11,6 +11,7 @@ import Base
 
 export Lambda, Abs, App, Var
 export IndexedLambda, IAbs, IApp, IVar
+export stripnames
 
 
 "Representation of named lambda terms."
@@ -36,7 +37,10 @@ abstract IndexedLambda
 
 immutable IAbs <: IndexedLambda
     body::IndexedLambda
+    binding::Nullable{Symbol}
 end
+
+IAbs(body::IndexedLambda) = IAbs(body, Nullable{Symbol}())
 
 immutable IApp <: IndexedLambda
     car::IndexedLambda
@@ -45,8 +49,10 @@ end
 
 immutable IVar <: IndexedLambda
     index::UInt
+    name::Nullable{Symbol}
 
-    IVar(i) = i > 0 ? new(i) : error("De Bruijn index must be greater zero")
+    IVar(i, s) = i > 0 ? new(i, Nullable{Symbol}(s)) : error("De Bruijn index must be greater zero")
+    IVar(i) = i > 0 ? new(i, Nullable{Symbol}()) : error("De Bruijn index must be greater zero")
 end
 
 
@@ -54,21 +60,39 @@ Base.show(io::IO, expr::Abs) = print(io, "(λ$(expr.variable).$(expr.body))")
 Base.show(io::IO, expr::App) = print(io, "($(expr.car) $(expr.cdr))")
 Base.show(io::IO, expr::Var) = print(io, expr.name)
 
-Base.show(io::IO, expr::IAbs) = print(io, "(λ.$(expr.body))")
+function Base.show(io::IO, expr::IAbs)
+    if isnull(expr.binding)
+        print(io, "(λ.$(expr.body))")
+    else
+        print(io, "(λ{$(get(expr.binding))}.$(expr.body))")
+    end
+end
 Base.show(io::IO, expr::IApp) = print(io, "($(expr.car) $(expr.cdr))")
-Base.show(io::IO, expr::IVar) = print(io, expr.index)
+function Base.show(io::IO, expr::IVar)
+    if isnull(expr.name)
+        print(io, expr.index)
+    else
+        print(io, "{$(get(expr.name)):$(expr.index)}")
+    end
+end
+
+@doc "Strip the implicitely remembered names of an indexed term" stripnames
+
+stripnames(expr::IVar) = IVar(expr.index)
+stripnames(expr::IAbs) = IAbs(stripnames(expr.body))
+stripnames(expr::IApp) = IApp(stripnames(expr.car), stripnames(expr.cdr))
 
 
 # convenience macros for writing that stuff in better syntax
 export @named_term, @indexed_term, compile
 
 "Convert a Julia lambda into a `Lambda`, keeping the names used."
-macro named_term(expr) 
+macro named_term(expr::Expr) 
     return fromast(expr)
 end
 
 "Convert a Julia lambda into an `IndexedLambda`, discarding the names used."
-macro indexed_term(expr)
+macro indexed_term(expr::Expr)
     # TODO: maybe remember the names in a private field
     return todebruijn(fromast(expr))
 end
@@ -119,12 +143,12 @@ todebruijn(expr::Lambda)::IndexedLambda = todebruijn_helper(expr, collect(freeva
 
 function todebruijn_helper(expr::Var, names)::IndexedLambda
     i = findfirst(names, expr.name)
-    return IVar(i)
+    return IVar(i, expr.name)
 end
 
 function todebruijn_helper(expr::Abs, names)::IndexedLambda
     body = todebruijn_helper(expr.body, [expr.variable; names])
-    return IAbs(body)
+    return IAbs(body, expr.variable)
 end
 
 function todebruijn_helper(expr::App, names)::IndexedLambda
@@ -175,20 +199,25 @@ end
 
 function fromdebruijn_helper(expr::IVar, available_names, used_names)::Lambda
     level = length(used_names)
-    
+
     if 1 <= expr.index <= level
-        return Var(used_names[expr.index])
+        return Var(get(expr.name, used_names[expr.index]))
     elseif level < expr.index
-        return Var(nth(available_names, expr.index - level))
+        return Var(get(expr.name, nth(available_names, expr.index - level)))
     else
         error("Invalid index: $(expr.index)")
     end
 end
 
 function fromdebruijn_helper(expr::IAbs, available_names, used_names)::Lambda
-    new_name = nth(available_names, 1)
-    body = fromdebruijn_helper(expr.body, drop(available_names, 1), [new_name; used_names])
-    return Abs(new_name, body)
+    if isnull(expr.binding)
+        new_name = nth(available_names, 1)
+        body = fromdebruijn_helper(expr.body, drop(available_names, 1), [new_name; used_names])
+        return Abs(new_name, body)
+    else
+        body = fromdebruijn_helper(expr.body, available_names, [get(expr.binding); used_names])
+        return Abs(get(expr.binding), body)
+    end
 end
 
 function fromdebruijn_helper(expr::IApp, available_names, used_names)::Lambda
