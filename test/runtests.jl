@@ -2,7 +2,27 @@ using BinaryLambdaCalculus
 using Base.Test
 
 
-# ENCODING
+# MACROS
+let
+    local id_x = @indexed_term x -> x
+    local id_n = @named_term x -> x
+
+    local id_x_result = @indexed_term a -> (x -> x)(a)
+    local id_xx = @indexed_term a -> $id_x(a)
+    local id_xn = @indexed_term a -> $id_n(a)
+
+    local id_n_result = @named_term a -> (x -> x)(a)
+    local id_nn = @named_term a -> $id_n(a)
+    local id_nx = @named_term a -> $id_x(a)
+    
+    @test alpha_equivalent(id_xx, id_x_result)
+    @test alpha_equivalent(id_xn, id_x_result)
+    @test alpha_equivalent(id_nn, id_n_result)
+    @test alpha_equivalent(id_nx, id_n_result)
+end
+
+
+# ENCODING & CONVERSION
 let
     local id = @named_term x -> x
     local Ω = @named_term (x -> x(x))(x -> x(x))
@@ -14,17 +34,24 @@ let
     local Ω_ix = @indexed_term (x -> x(x))(x -> x(x))
     local K_ix = @indexed_term x -> y -> x
     local free_ix = @indexed_term x -> y
-    local terms_ix = [id_ix, Ω_ix, K_ix, free_ix]
+    local indexed_terms = [id_ix, Ω_ix, K_ix, free_ix]
     
     for t in named_terms
-        @test fromdebruijn(todebruijn(t), ["x", "y", "z"]) == t
+        @test alpha_equivalent(fromdebruijn(todebruijn(t)), t)
+        @test fromdebruijn(todebruijn(t), [:x, :y, :z]) == t
     end
 
-    for t in terms_ix
+    for t in indexed_terms
         @test todebruijn(fromdebruijn(t)) == t
         @test alpha_equivalent(decode(encode(t)), t)
     end
+
+    for (tn, tx) in zip(named_terms, indexed_terms)
+        @test alpha_equivalent(todebruijn(tn), tx)
+        @test alpha_equivalent(tn, fromdebruijn(tx))
+    end
 end
+
 
 # EVALUATION
 let
@@ -39,11 +66,11 @@ let
         @test alpha_equivalent(evaluate(t), r)
     end
 end
-      
-# ENUMERATION
 
-# explicit recursive formula for testing
+
+# ENUMERATION
 function S{T}(m::T, n::T)
+    # explicit recursive formula for testing
     if n <= 1
         return 0
     else

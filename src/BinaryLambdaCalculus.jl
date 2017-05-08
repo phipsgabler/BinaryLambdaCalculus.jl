@@ -91,50 +91,8 @@ alpha_equivalent(t1::IndexedLambda, t2::IndexedLambda) = stripnames(t1) == strip
 ############################
 # CONVERSION JULIA <-> TERMS
 ############################
-export @named_term, @indexed_term, compile
 
-"Convert a Julia lambda into a `Lambda`, keeping the names used"
-macro named_term(expr::Expr) 
-    return fromast(expr)
-end
-
-"Convert a Julia lambda into an `IndexedLambda`"
-macro indexed_term(expr::Expr)
-    # TODO: maybe remember the names in a private field
-    return :($(fromast(expr)) |> todebruijn)
-end
-
-fromast(v::Symbol) = Expr(:call, :Var, Expr(:quote, v))
-
-# macro eval(ex)
-#     :(eval($(current_module()), $(Expr(:quote,ex))))
-
-function fromast(expr::Expr)
-    if expr.head == :call
-        # TODO: handle :* case
-        # return foldl(App, map(fromast, expr.args))
-        @assert(length(expr.args) >= 2, "call must contain arguments")
-        return mapfoldl(fromast, (f, arg) -> Expr(:call, :App, f, arg), expr.args)
-    elseif expr.head == :->
-        @assert(isa(expr.args[1], Symbol), "only single-argument lambdas are allowed") # TODO: handle multiple arguments
-        return Expr(:call, :Abs, Expr(:quote, expr.args[1]), fromast(expr.args[2]))
-    # elseif expr.head == :$
-        # esc
-    elseif expr.head == :block
-        # such trivial blocks are used by the parser in lambdas
-        return fromast(expr.args[end])
-    else
-        error("unhandled syntax: $expr)")
-    end
-end
-
-# conversion to Julia ast
-toast(expr::Abs)::Expr = Expr(:->, Symbol(expr.variable), toast(expr.body))
-toast(expr::App)::Expr = Expr(:call, toast(expr.car), toast(expr.cdr))
-toast(expr::Var)::Symbol = Symbol(expr.name)
-
-compile(expr::Lambda) = toast(expr) |> eval
-compile(expr::IndexedLambda) = fromdebruijn(expr) |> toast |> eval
+include("meta.jl")
 
 
 ############################################
@@ -158,9 +116,9 @@ include("coding.jl")
 include("tromp.jl")
 
 
-####################################
-# EVALUATING TERMS
-####################################
+################
+# REDUCING TERMS
+################
 
 include("evaluation.jl")
 

@@ -12,6 +12,7 @@ export todebruijn
 Convert a named term into its De Bruijn representation.
 """
 todebruijn(expr::Lambda)::IndexedLambda = todebruijn_helper(expr, collect(freevars(expr)))
+todebruijn(expr::IndexedLambda)::IndexedLambda = expr
 
 
 function todebruijn_helper(expr::Var, names::Vector{Symbol})::IndexedLambda
@@ -46,6 +47,7 @@ export fromdebruijn
 
 include("namesgenerator.jl")
 
+fromdebruijn(expr::Lambda)::Lambda = expr
 
 """
     fromdebruijn(expr::IndexedLambda[, tag::String])::Lambda
