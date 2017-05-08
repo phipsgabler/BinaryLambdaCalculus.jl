@@ -11,7 +11,7 @@ import Base
 
 export Lambda, Abs, App, Var
 export IndexedLambda, IAbs, IApp, IVar
-export stripnames
+export stripnames, alpha_equivalent
 
 
 "Representation of named lambda terms."
@@ -35,6 +35,8 @@ end
 "Representation of De Bruijn indexed lambda terms."
 abstract IndexedLambda
 
+typealias Index Int
+
 immutable IAbs <: IndexedLambda
     body::IndexedLambda
     binding::Nullable{Symbol}
@@ -48,7 +50,7 @@ immutable IApp <: IndexedLambda
 end
 
 immutable IVar <: IndexedLambda
-    index::UInt
+    index::Index
     name::Nullable{Symbol}
 
     IVar(i, s) = i > 0 ? new(i, Nullable{Symbol}(s)) : error("De Bruijn index must be greater zero")
@@ -76,22 +78,27 @@ function Base.show(io::IO, expr::IVar)
     end
 end
 
-@doc "Strip the implicitely remembered names of an indexed term" stripnames
 
+@doc "Strip the implicitely remembered names of an indexed term" stripnames
 stripnames(expr::IVar) = IVar(expr.index)
 stripnames(expr::IAbs) = IAbs(stripnames(expr.body))
 stripnames(expr::IApp) = IApp(stripnames(expr.car), stripnames(expr.cdr))
 
+alpha_equivalent(t1::Lambda, t2::Lambda) = stripnames(todebruijn(t1)) == stripnames(todebruijn(t2))
+alpha_equivalent(t1::IndexedLambda, t2::IndexedLambda) = stripnames(t1) == stripnames(t2)
 
-# convenience macros for writing that stuff in better syntax
+
+############################
+# CONVERSION JULIA <-> TERMS
+############################
 export @named_term, @indexed_term, compile
 
-"Convert a Julia lambda into a `Lambda`, keeping the names used."
+"Convert a Julia lambda into a `Lambda`, keeping the names used"
 macro named_term(expr::Expr) 
     return fromast(expr)
 end
 
-"Convert a Julia lambda into an `IndexedLambda`, discarding the names used."
+"Convert a Julia lambda into an `IndexedLambda`"
 macro indexed_term(expr::Expr)
     # TODO: maybe remember the names in a private field
     return todebruijn(fromast(expr))
@@ -101,6 +108,8 @@ fromast(v::Symbol)::Lambda = Var(v)
 
 function fromast(expr::Expr)::Lambda
     if expr.head == :call
+        # TODO: handle :* case
+        # TODO: handle splicing of Lambdas
         return foldl(App, map(fromast, expr.args))
     elseif expr.head == :->
         return Abs(expr.args[1], fromast(expr.args[2]));
@@ -121,110 +130,11 @@ compile(expr::Lambda) = toast(expr) |> eval
 compile(expr::IndexedLambda) = fromdebruijn(expr) |> toast |> eval
 
 
-###########################################
-# CONVERSION NAMED TERMS -> DE BRUIJN TERMS
-###########################################
+############################################
+# CONVERSION NAMED TERMS <-> DE BRUIJN TERMS
+############################################
 
-# the conversions functions are mostly a translation of this code:
-# https://gist.github.com/Cedev/087c3e50ecc53e0f04e9,
-# extended to work with an infinite reservoir of free variables
-
-# NOTE: the De Bruijn indices begin at 1, not 0!
-
-export todebruijn
-
-"""
-   todebruijn(expr::Lambda)::IndexedLambda 
-
-Convert a named term into its De Bruijn representation.
-"""
-todebruijn(expr::Lambda)::IndexedLambda = todebruijn_helper(expr, collect(freevars(expr)))
-
-
-function todebruijn_helper(expr::Var, names)::IndexedLambda
-    i = findfirst(names, expr.name)
-    return IVar(i, expr.name)
-end
-
-function todebruijn_helper(expr::Abs, names)::IndexedLambda
-    body = todebruijn_helper(expr.body, [expr.variable; names])
-    return IAbs(body, expr.variable)
-end
-
-function todebruijn_helper(expr::App, names)::IndexedLambda
-    l = todebruijn_helper(expr.car, names)
-    r = todebruijn_helper(expr.cdr, names)
-    return IApp(l, r)
-end
-
-freevars(expr::Var)::Set{Symbol} = Set([expr.name])
-freevars(expr::Abs)::Set{Symbol} = setdiff(freevars(expr.body), Set([expr.variable]))
-freevars(expr::App)::Set{Symbol} = union(freevars(expr.car), freevars(expr.cdr))
-
-
-###########################################
-# CONVERSION DE BRUIJN TERMS -> NAMED TERMS
-###########################################
-
-# NOTE: indices begin at 1, not 0!
-
-export fromdebruijn
-
-include("namesgenerator.jl")
-
-
-"""
-    fromdebruijn(expr::IndexedLambda[, tag::String])::Lambda
-
-Convert an indexed term to a named term.  If free variables occur, they are given new, unique names,
-based on `tag`.
-"""
-function fromdebruijn(expr::IndexedLambda, tag::String = "x")::Lambda
-    return fromdebruijn_helper(expr, generatenames(tag), [])
-end
-
-
-"""
-    fromdebruijn(expr::IndexedLambda, names)::Lambda
-
-Convert an indexed term to a named term. If free variables occur, they are given new, unique names
-based on the given `names`; these are suffixed, if not sufficient.
-"""
-function fromdebruijn(expr::IndexedLambda, names)::Lambda
-    return fromdebruijn_helper(expr, generatenames(names), [])
-end
-
-
-# TODO: turn used_names into a tree?
-
-function fromdebruijn_helper(expr::IVar, available_names, used_names)::Lambda
-    level = length(used_names)
-
-    if 1 <= expr.index <= level
-        return Var(get(expr.name, used_names[expr.index]))
-    elseif level < expr.index
-        return Var(get(expr.name, nth(available_names, expr.index - level)))
-    else
-        error("Invalid index: $(expr.index)")
-    end
-end
-
-function fromdebruijn_helper(expr::IAbs, available_names, used_names)::Lambda
-    if isnull(expr.binding)
-        new_name = nth(available_names, 1)
-        body = fromdebruijn_helper(expr.body, drop(available_names, 1), [new_name; used_names])
-        return Abs(new_name, body)
-    else
-        body = fromdebruijn_helper(expr.body, available_names, [get(expr.binding); used_names])
-        return Abs(get(expr.binding), body)
-    end
-end
-
-function fromdebruijn_helper(expr::IApp, available_names, used_names)::Lambda
-    l = fromdebruijn_helper(expr.car, available_names, used_names)
-    r = fromdebruijn_helper(expr.cdr, available_names, used_names)
-    return App(l, r)
-end
+include("debruijn.jl")
 
 
 ####################################
@@ -233,11 +143,18 @@ end
 
 include("coding.jl")
 
+
 #############################
 # COUNTING/UNRANKING OF TERMS
 #############################
 
 include("tromp.jl")
 
+
+####################################
+# EVALUATING TERMS
+####################################
+
+include("evaluation.jl")
 
 end

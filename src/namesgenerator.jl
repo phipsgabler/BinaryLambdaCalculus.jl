@@ -32,6 +32,7 @@ Base.iteratorsize(::Type{NamesGenerator}) = Base.IsInfinite()
 Base.iteratoreltype(::Type{NamesGenerator}) = Base.HasEltype()
 Base.eltype(::Type{NamesGenerator}) = Symbol
 
-generatenames(names::Array{String}) = NamesGenerator(unique(names))
+generatenames(names::Vector{String}) = NamesGenerator(unique(names))
+generatenames(names::Vector{Symbol}) = NamesGenerator(map(string, names) |> unique)
 
 generatenames(tag::String) = (Symbol("$(tag)$(i)") for i in countfrom(1))
