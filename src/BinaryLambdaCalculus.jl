@@ -101,19 +101,26 @@ end
 "Convert a Julia lambda into an `IndexedLambda`"
 macro indexed_term(expr::Expr)
     # TODO: maybe remember the names in a private field
-    return todebruijn(fromast(expr))
+    return :($(fromast(expr)) |> todebruijn)
 end
 
-fromast(v::Symbol)::Lambda = Var(v)
+fromast(v::Symbol) = Expr(:call, :Var, Expr(:quote, v))
 
-function fromast(expr::Expr)::Lambda
+# macro eval(ex)
+#     :(eval($(current_module()), $(Expr(:quote,ex))))
+
+function fromast(expr::Expr)
     if expr.head == :call
         # TODO: handle :* case
-        # TODO: handle splicing of Lambdas
-        return foldl(App, map(fromast, expr.args))
+        # return foldl(App, map(fromast, expr.args))
+        @assert(length(expr.args) >= 2, "call must contain arguments")
+        return mapfoldl(fromast, (f, arg) -> Expr(:call, :App, f, arg), expr.args)
     elseif expr.head == :->
-        return Abs(expr.args[1], fromast(expr.args[2]));
-    elseif expr.head == :block && length(expr.args) == 2
+        @assert(isa(expr.args[1], Symbol), "only single-argument lambdas are allowed") # TODO: handle multiple arguments
+        return Expr(:call, :Abs, Expr(:quote, expr.args[1]), fromast(expr.args[2]))
+    # elseif expr.head == :$
+        # esc
+    elseif expr.head == :block
         # such trivial blocks are used by the parser in lambdas
         return fromast(expr.args[end])
     else
