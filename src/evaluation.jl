@@ -59,9 +59,26 @@ function evaluateonce(expr::IAbs)
 end
 
 
-"Evaluate an indexed term by normal order reduction"
+"""
+    evaluate(expr::IndexedLambda[, steps::Int])
+
+Evaluate an indexed term by normal order reduction, using maximally `steps` reductions.
+"""
+function evaluate(expr::IndexedLambda, steps::Int)
+    if steps <= 0
+        return expr
+    else
+        reduced = evaluateonce(expr)
+        if isa(reduced, Redex)
+            evaluate(reduced.expr, steps - 1)
+        else
+            return reduced.expr
+        end
+    end
+end
+
 evaluate(expr::IndexedLambda) = evaluate(evaluateonce(expr))
-evaluate(expr::Lambda) = evaluate(todebruijn(expr))
+# evaluate(expr::Lambda) = evaluate(todebruijn(expr))
 evaluate(r::Redex) = evaluate(evaluateonce(r.expr))
 evaluate(r::Irreducible) = r.expr
 
