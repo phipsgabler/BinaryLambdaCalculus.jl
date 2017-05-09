@@ -19,6 +19,10 @@ let
     @test alpha_equivalent(id_xn, id_x_result)
     @test alpha_equivalent(id_nn, id_n_result)
     @test alpha_equivalent(id_nx, id_n_result)
+
+    local t = @evaluate x -> (x -> x)(y)
+    local t_result = @indexed_term x -> y
+    @test alpha_equivalent(t, t_result)
 end
 
 

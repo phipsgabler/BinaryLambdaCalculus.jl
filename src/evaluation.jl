@@ -1,4 +1,4 @@
-export evaluate, evaluate1
+export evaluate, evaluate1, @evaluate
 
 shift(c, d, expr::IVar) = (expr.index < c) ? expr : IVar(expr.index + d, expr.name)
 shift(c, d, expr::IAbs) = IAbs(shift(c + 1, d, expr.body), expr.binding)
@@ -61,5 +61,11 @@ end
 
 "Evaluate an indexed term by normal order reduction"
 evaluate(expr::IndexedLambda) = evaluate(evaluate1(expr))
+evaluate(expr::Lambda) = evaluate(todebruijn(expr))
 evaluate(r::Redex) = evaluate(evaluate1(r.expr))
 evaluate(r::Irreducible) = r.expr
+
+macro evaluate(expr::Expr)
+    :(evaluate($(expr2ast(expr))))
+end
+
