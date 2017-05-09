@@ -57,9 +57,6 @@ Therefore, there are conversions to and from the binary representation of indexe
 the "binary" part):
 
 ```
-julia> decode(encode(todebruijn(pair)))
-(λ.((1 2) 3))
-
 julia> pair |> todebruijn |> encode
 "\0\0\0\x01\0\x01\x01\0\x01\x01\0\x01\x01\x01\0"
 
