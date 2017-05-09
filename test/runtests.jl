@@ -4,16 +4,16 @@ using Base.Test
 
 # MACROS
 let
-    local id_x = @indexed_term x -> x
-    local id_n = @named_term x -> x
+    local id_x = @lambda x -> x
+    local id_n = @named_lambda x -> x
 
-    local id_x_result = @indexed_term a -> (x -> x)(a)
-    local id_xx = @indexed_term a -> $id_x(a)
-    local id_xn = @indexed_term a -> $id_n(a)
+    local id_x_result = @lambda a -> (x -> x)(a)
+    local id_xx = @lambda a -> $id_x(a)
+    local id_xn = @lambda a -> $id_n(a)
 
-    local id_n_result = @named_term a -> (x -> x)(a)
-    local id_nn = @named_term a -> $id_n(a)
-    local id_nx = @named_term a -> $id_x(a)
+    local id_n_result = @named_lambda a -> (x -> x)(a)
+    local id_nn = @named_lambda a -> $id_n(a)
+    local id_nx = @named_lambda a -> $id_x(a)
     
     @test alpha_equivalent(id_xx, id_x_result)
     @test alpha_equivalent(id_xn, id_x_result)
@@ -21,36 +21,36 @@ let
     @test alpha_equivalent(id_nx, id_n_result)
 
     local t = @evaluate x -> (x -> x)(y)
-    local t_result = @indexed_term x -> y
+    local t_result = @lambda x -> y
     @test alpha_equivalent(t, t_result)
 end
 
 
 # ENCODING & CONVERSION
 let
-    local id = @named_term x -> x
-    local Ω = @named_term (x -> x(x))(x -> x(x))
-    local K = @named_term x -> y -> x
-    local free = @named_term x -> y
-    local named_terms = [id, Ω, K, free]
+    local id = @named_lambda x -> x
+    local Ω = @named_lambda (x -> x(x))(x -> x(x))
+    local K = @named_lambda x -> y -> x
+    local free = @named_lambda x -> y
+    local named_lambdas = [id, Ω, K, free]
 
-    local id_ix = @indexed_term x -> x
-    local Ω_ix = @indexed_term (x -> x(x))(x -> x(x))
-    local K_ix = @indexed_term x -> y -> x
-    local free_ix = @indexed_term x -> y
-    local indexed_terms = [id_ix, Ω_ix, K_ix, free_ix]
+    local id_ix = @lambda x -> x
+    local Ω_ix = @lambda (x -> x(x))(x -> x(x))
+    local K_ix = @lambda x -> y -> x
+    local free_ix = @lambda x -> y
+    local lambdas = [id_ix, Ω_ix, K_ix, free_ix]
     
-    for t in named_terms
+    for t in named_lambdas
         @test alpha_equivalent(fromdebruijn(todebruijn(t)), t)
         @test fromdebruijn(todebruijn(t), [:x, :y, :z]) == t
     end
 
-    for t in indexed_terms
+    for t in lambdas
         @test todebruijn(fromdebruijn(t)) == t
         @test alpha_equivalent(decode(encode(t)), t)
     end
 
-    for (tn, tx) in zip(named_terms, indexed_terms)
+    for (tn, tx) in zip(named_lambdas, lambdas)
         @test alpha_equivalent(todebruijn(tn), tx)
         @test alpha_equivalent(tn, fromdebruijn(tx))
     end
@@ -59,12 +59,12 @@ end
 
 # EVALUATION
 let
-    local terms = [@indexed_term((x -> (x -> x))(z -> z)),
-                   @indexed_term((x -> x)(z -> (x -> x)(z))),
-                   @indexed_term((f -> x -> f(f(x)))(f -> x -> f(f(x))))]
-    local results = [@indexed_term(x -> x),
-                     @indexed_term(z -> z),
-                     @indexed_term(x -> y -> x(x(x(x(y)))))]
+    local terms = [@lambda((x -> (x -> x))(z -> z)),
+                   @lambda((x -> x)(z -> (x -> x)(z))),
+                   @lambda((f -> x -> f(f(x)))(f -> x -> f(f(x))))]
+    local results = [@lambda(x -> x),
+                     @lambda(z -> z),
+                     @lambda(x -> y -> x(x(x(x(y)))))]
     
     for (t, r) in zip(terms, results)
         @test alpha_equivalent(evaluate(t), r)

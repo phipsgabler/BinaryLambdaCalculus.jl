@@ -1,11 +1,11 @@
-export @named_term, @indexed_term, compile
+export @named_lambda, @lambda, compile
 
 # "expr" means a Julia expression: :(:-> :x :y)
 # "lambda" means a Lambda value: Abs(:x, Var(:y))
 # "ast" means a Julia expression for a lambda value: :(:call :Abs :(:x) (:call :Var :(:y)))
 
 "Convert a Julia lambda into a `Lambda`, keeping the names used"
-macro named_term(expr::Expr) 
+macro named_lambda(expr) 
     return expr2ast(expr)
 end
 
@@ -31,7 +31,13 @@ function expr2ast(expr::Expr)
 end
 
 "Convert a Julia lambda into an `IndexedLambda`"
-macro indexed_term(expr::Expr)
+macro lambda(expr)
+    # TODO: handle transformation on source level
+    return :(todebruijn($(expr2ast(expr))))
+end
+
+"Convert a Julia lambda into an `IndexedLambda`"
+macro λ(expr)
     return :(todebruijn($(expr2ast(expr))))
 end
 

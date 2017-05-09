@@ -12,15 +12,14 @@ representations of named and De-Bruijn-indexed terms, and their conversions, wit
 macros taking Julia lambdas:
 
 ```
-julia> Ω = @named_term (x -> x(x))(x -> x(x))
+julia> Ω = @named_lambda (x -> x(x))(x -> x(x))   # named representation
 ((λx.(x x)) (λx.(x x)))
 
-julia> K_ix = @indexed_term x -> y -> x
+julia> K_ix = @lambda x -> y -> x   # de Bruijn representation
 (λ{x}.(λ{y}.{x:2}))
 
 julia> fromdebruijn(K_ix)
 (λx.(λy.x))
-
 ```
 
 As you can see, indexed terms try to do their best to rename the original variable names, and will
@@ -30,21 +29,21 @@ Terms can also be spliced into other terms (conversion from and to indexed form 
 automatically):
 
 ```
-julia> fst = @named_term t -> t($K_ix)
+julia> fst = @named_lambda t -> t($K_ix)
 (λt.(t (λx.(λy.x))))
 ```
 
 Function literals are tried to be translated in meaningful (ie., curried) ways:
 
 ```
-julia> pair = @named_term f -> f(one, two)
+julia> pair = @named_lambda f -> f(one, two)
 (λf.((f one) two))
 ```
 
 Finally, we can perform normal order reduction on indexed terms:
 
 ```
-julia> evaluate(@indexed_term $fst($pair))
+julia> evaluate(@lambda $fst($pair))
 {one:1}
 ```
 

@@ -1,4 +1,4 @@
-export evaluate, evaluate1, @evaluate
+export evaluate, evaluateonce, @evaluate
 
 shift(c, d, expr::IVar) = (expr.index < c) ? expr : IVar(expr.index + d, expr.name)
 shift(c, d, expr::IAbs) = IAbs(shift(c + 1, d, expr.body), expr.binding)
@@ -24,8 +24,8 @@ immutable Irreducible <: EvalResult
 end
 
 
-function evaluate1_app(car::IVar, cdr::IndexedLambda)
-    newcdr = evaluate1(cdr)
+function evaluateonce_app(car::IVar, cdr::IndexedLambda)
+    newcdr = evaluateonce(cdr)
     if isa(newcdr, Redex)
         Redex(IApp(car, newcdr.expr))
     else
@@ -33,11 +33,11 @@ function evaluate1_app(car::IVar, cdr::IndexedLambda)
     end
 end
 
-evaluate1_app(car::IAbs, cdr::IndexedLambda) =
+evaluateonce_app(car::IAbs, cdr::IndexedLambda) =
     Redex(shift(-1, substitute(car.body, IVar(1), shift(1, cdr))))
 
-function evaluate1_app(car::IApp, cdr::IndexedLambda)
-    newcar = evaluate1(car)
+function evaluateonce_app(car::IApp, cdr::IndexedLambda)
+    newcar = evaluateonce(car)
     if isa(newcar, Redex)
         Redex(IApp(newcar.expr, cdr))
     else
@@ -46,11 +46,11 @@ function evaluate1_app(car::IApp, cdr::IndexedLambda)
 end
 
 
-@doc "Reduce an indexed term by one step in normal order" evaluate1
-evaluate1(expr::IApp) = evaluate1_app(expr.car, expr.cdr)
-evaluate1(expr::IVar) = Irreducible(expr)
-function evaluate1(expr::IAbs)
-    newbody = evaluate1(expr.body)
+@doc "Reduce an indexed term by one step in normal order" evaluateonce
+evaluateonce(expr::IApp) = evaluateonce_app(expr.car, expr.cdr)
+evaluateonce(expr::IVar) = Irreducible(expr)
+function evaluateonce(expr::IAbs)
+    newbody = evaluateonce(expr.body)
     if isa(newbody, Redex)
         Redex(IAbs(newbody.expr, expr.binding))
     else
@@ -60,12 +60,12 @@ end
 
 
 "Evaluate an indexed term by normal order reduction"
-evaluate(expr::IndexedLambda) = evaluate(evaluate1(expr))
+evaluate(expr::IndexedLambda) = evaluate(evaluateonce(expr))
 evaluate(expr::Lambda) = evaluate(todebruijn(expr))
-evaluate(r::Redex) = evaluate(evaluate1(r.expr))
+evaluate(r::Redex) = evaluate(evaluateonce(r.expr))
 evaluate(r::Irreducible) = r.expr
 
-macro evaluate(expr::Expr)
+macro evaluate(expr)
     :(evaluate($(expr2ast(expr))))
 end
 
