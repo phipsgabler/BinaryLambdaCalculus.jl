@@ -65,24 +65,34 @@ end
 Evaluate an indexed term by normal order reduction, using maximally `steps` reductions.
 """
 function evaluate(expr::IndexedLambda, steps::Int)
-    if steps <= 0
-        return expr
-    else
+    while steps >= 0
         reduced = evaluateonce(expr)
-        if isa(reduced, Redex)
-            evaluate(reduced.expr, steps - 1)
-        else
-            return reduced.expr
-        end
+        isa(expr, Irreducible) && break
+        expr = reduced.expr
+        steps -= 1
     end
+
+    expr
 end
 
-evaluate(expr::IndexedLambda) = evaluate(evaluateonce(expr))
-# evaluate(expr::Lambda) = evaluate(todebruijn(expr))
-evaluate(r::Redex) = evaluate(evaluateonce(r.expr))
-evaluate(r::Irreducible) = r.expr
+function evaluate(expr::IndexedLambda)
+    reduced = evaluateonce(expr)
+
+    while isa(reduced, Redex)
+        reduced = evaluateonce(reduced.expr)
+    end
+
+    reduced.expr
+end
+
+evaluate(expr::Lambda) = evaluate(todebruijn(expr))
+evaluate(expr::Lambda, steps::Int) = evaluate(todebruijn(expr), steps)
 
 macro evaluate(expr)
     :(evaluate($(expr2ast(expr))))
+end
+
+macro evaluate(expr, n)
+    :(evaluate($(expr2ast(expr)), $n))
 end
 
