@@ -13,13 +13,13 @@ substitute(expr::IApp, x::IVar, s::IndexedLambda) =
 
 # (k::IndexedLambda)(subs::Pair{Int, IndexedLambda}) = substitute(subs.first, subs.second, k)
 
-abstract EvalResult
+abstract type EvalResult end
 
-immutable Redex <: EvalResult
+struct Redex <: EvalResult
     expr::IndexedLambda
 end
 
-immutable Irreducible <: EvalResult
+struct Irreducible <: EvalResult
     expr::IndexedLambda
 end
 

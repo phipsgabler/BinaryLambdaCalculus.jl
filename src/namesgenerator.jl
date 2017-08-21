@@ -1,6 +1,8 @@
 # produce an infinite sequence of unique names,
 # by appending integers to the given names
 
+using Base.Iterators: countfrom
+
 immutable NamesGenerator
     names::Array{String}
 end

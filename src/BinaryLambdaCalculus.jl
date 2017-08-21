@@ -15,41 +15,41 @@ export stripnames, alpha_equivalent
 
 
 "Representation of named lambda terms."
-abstract Lambda
+abstract type Lambda end
 
-immutable Abs <: Lambda
+struct Abs <: Lambda
     variable::Symbol
     body::Lambda
 end
 
-immutable App <: Lambda
+struct App <: Lambda
     car::Lambda
     cdr::Lambda
 end
 
-immutable Var <: Lambda
+struct Var <: Lambda
     name::Symbol
 end
 
 
 "Representation of De Bruijn indexed lambda terms."
-abstract IndexedLambda
+abstract type IndexedLambda end
 
-typealias Index Int
+const Index =  Int
 
-immutable IAbs <: IndexedLambda
+struct IAbs <: IndexedLambda
     body::IndexedLambda
     binding::Nullable{Symbol}
 end
 
 IAbs(body::IndexedLambda) = IAbs(body, Nullable{Symbol}())
 
-immutable IApp <: IndexedLambda
+struct IApp <: IndexedLambda
     car::IndexedLambda
     cdr::IndexedLambda
 end
 
-immutable IVar <: IndexedLambda
+struct IVar <: IndexedLambda
     index::Index
     name::Nullable{Symbol}
 

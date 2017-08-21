@@ -4,6 +4,8 @@
 
 # NOTE: the De Bruijn indices begin at 1, not 0!
 
+using Base.Iterators: drop
+
 export todebruijn
 
 """

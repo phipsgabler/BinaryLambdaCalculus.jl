@@ -13,7 +13,7 @@ export tromp, tromp!, unrank, unrank!, terms
 # COUNTING AND UNRANKING
 ########################
 
-typealias Table{T} Dict{Tuple{Int, Int}, T}
+const Table{T} = Dict{Tuple{Int, Int}, T}
 
 
 """
@@ -131,7 +131,7 @@ immutable TermsIterator{T<:Integer}
     table::Table{T}
 end
 
-typealias TermsIteratorState Int
+const TermsIteratorState = Int
 
 Base.start{T}(::TermsIterator{T}) = TermsIteratorState(1)
 Base.next{T}(it::TermsIterator{T}, state::TermsIteratorState) =
