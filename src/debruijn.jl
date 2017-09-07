@@ -4,7 +4,7 @@
 
 # NOTE: the De Bruijn indices begin at 1, not 0!
 
-using Compat.Iterators: drop
+using Base.Iterators: drop
 
 export todebruijn
 
