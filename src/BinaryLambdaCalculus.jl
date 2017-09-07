@@ -1,6 +1,5 @@
 module BinaryLambdaCalculus
 
-using Compat
 import Base
 
 
@@ -14,41 +13,41 @@ export stripnames, alpha_equivalent
 
 
 "Representation of named lambda terms."
-@compat abstract type Lambda end
+abstract type Lambda end
 
-@compat struct Abs <: Lambda
+struct Abs <: Lambda
     variable::Symbol
     body::Lambda
 end
 
-@compat struct App <: Lambda
+struct App <: Lambda
     car::Lambda
     cdr::Lambda
 end
 
-@compat struct Var <: Lambda
+struct Var <: Lambda
     name::Symbol
 end
 
 
 "Representation of De Bruijn indexed lambda terms."
-@compat abstract type IndexedLambda end
+abstract type IndexedLambda end
 
 const Index =  Int
 
-@compat struct IAbs <: IndexedLambda
+struct IAbs <: IndexedLambda
     body::IndexedLambda
     binding::Nullable{Symbol}
 end
 
 IAbs(body::IndexedLambda) = IAbs(body, Nullable{Symbol}())
 
-@compat struct IApp <: IndexedLambda
+struct IApp <: IndexedLambda
     car::IndexedLambda
     cdr::IndexedLambda
 end
 
-@compat struct IVar <: IndexedLambda
+struct IVar <: IndexedLambda
     index::Index
     name::Nullable{Symbol}
 
