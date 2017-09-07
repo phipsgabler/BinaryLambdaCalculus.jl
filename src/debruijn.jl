@@ -4,7 +4,7 @@
 
 # NOTE: the De Bruijn indices begin at 1, not 0!
 
-using Base.Iterators: drop
+using Compat.Iterators: drop
 
 export todebruijn
 
@@ -57,7 +57,7 @@ fromdebruijn(expr::Lambda)::Lambda = expr
 Convert an indexed term to a named term.  If free variables occur, they are given new, unique names,
 based on `tag`.
 """
-function fromdebruijn(expr::IndexedLambda, tag::String = "x")::Lambda
+function fromdebruijn(expr::IndexedLambda, tag::AbstractString = "x")::Lambda
     return fromdebruijn_helper(expr, generatenames(tag), Symbol[])
 end
 
@@ -68,7 +68,7 @@ end
 Convert an indexed term to a named term. If free variables occur, they are given new, unique names
 based on the given `names`; these are suffixed, if not sufficient.
 """
-function fromdebruijn(expr::IndexedLambda, names::Vector)::Lambda
+function fromdebruijn(expr::IndexedLambda, names)::Lambda
     return fromdebruijn_helper(expr, generatenames(names), Symbol[])
 end
 

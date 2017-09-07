@@ -1,9 +1,10 @@
 # produce an infinite sequence of unique names,
 # by appending integers to the given names
 
-using Base.Iterators: countfrom
+using Compat.Iterators: countfrom
+import Base
 
-immutable NamesGenerator
+@compat struct NamesGenerator
     names::Array{String}
 end
 
@@ -34,7 +35,7 @@ Base.iteratorsize(::Type{NamesGenerator}) = Base.IsInfinite()
 Base.iteratoreltype(::Type{NamesGenerator}) = Base.HasEltype()
 Base.eltype(::Type{NamesGenerator}) = Symbol
 
-generatenames(names::Vector{String}) = NamesGenerator(unique(names))
+@compat generatenames(names::Vector{<:AbstractString}) = NamesGenerator(unique(names))
 generatenames(names::Vector{Symbol}) = NamesGenerator(map(string, names) |> unique)
 
-generatenames(tag::String) = (Symbol("$(tag)$(i)") for i in countfrom(1))
+generatenames(tag::Union{AbstractString, Symbol}) = (Symbol(tag, i) for i in countfrom(1))
