@@ -1,5 +1,5 @@
 using BinaryLambdaCalculus
-using Base.Test
+using Test
 
 
 # MACROS

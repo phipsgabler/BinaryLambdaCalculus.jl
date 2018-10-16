@@ -1,0 +1,7 @@
+name = "BinaryLambdaCalculus"
+uuid = "632fefe0-d12c-11e8-18ba-e97285cba452"
+authors = ["Philipp Gabler <phipsgabler@users.noreply.github.com>"]
+version = "0.1.0"
+
+[deps]
+PEG = "12d937ae-5f68-53be-93c9-3a6f997a20a8"
