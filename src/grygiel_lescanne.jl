@@ -3,7 +3,7 @@
 
 import Base
 
-export tromp, tromp!, unrank, unrank!, terms
+export grygiel_lescanne, grygiel_lescanne!, unrank, unrank!, terms
 
 # TODO:
 # - make k start from 0
@@ -18,26 +18,26 @@ const Table{T} = Dict{Tuple{Int, Int}, T}
 
 
 """
-     tromp{T}(m::Integer, n::Integer[, ::Type{T}])::T
+     grygiel_lescanne{T}(m::Integer, n::Integer[, ::Type{T}])::T
 
 Calculate the number of De Bruijn terms of binary size `n`, with at most `m` free variables.  This
 corresponds to the series Sₘₙ from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf).
 """
-function tromp(m::Integer, n::Integer, ::Type{T} = Int) where {T<:Integer}
-    return tromp!(m, n, Table{T}())
+function grygiel_lescanne(m::Integer, n::Integer, ::Type{T} = Int) where {T<:Integer}
+    return grygiel_lescanne!(m, n, Table{T}())
 end
 
 
 """
-    tromp!{T}(m::Integer, n::Integer, table::Table{T})::T
+    grygiel_lescanne!{T}(m::Integer, n::Integer, table::Table{T})::T
 
 Calculate the number of de Bruijn terms of binary size `n`, with at most `m` free variables.  This
-corresponds to the series Sₘₙ from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf).
+corresponds to the series Sₘₙ from [their paper](https://arxiv.org/pdf/1511.05334v1.pdf).
 
-As a side effect, fill `table` with recursive calls whose entries correspond to `tromp(n, m)`.  This
-method should be used instead of repeatedly calling `tromp`.
+As a side effect, fill `table` with recursive calls whose entries correspond to `grygiel_lescanne(n, m)`.  This
+method should be used instead of repeatedly calling `grygiel_lescanne`.
 """
-function tromp!(m::Integer, n::Integer, table::Table{T}) where {T<:Integer}
+function grygiel_lescanne!(m::Integer, n::Integer, table::Table{T}) where {T<:Integer}
     @assert(m >= 0)
     @assert(n >= 0)
 
@@ -48,8 +48,8 @@ function tromp!(m::Integer, n::Integer, table::Table{T}) where {T<:Integer}
             return 0
         else 
             Int(m >= n - 1) +
-                tromp!(m + 1, n - 2, table) +
-                sum(tromp!(m, k, table) * tromp!(m, n - 2 - k, table) for k = 0:(n-2))
+                grygiel_lescanne!(m + 1, n - 2, table) +
+                sum(grygiel_lescanne!(m, k, table) * grygiel_lescanne!(m, n - 2 - k, table) for k = 0:(n-2))
         end
     end
 end
@@ -80,23 +80,23 @@ function unrank!(m::Integer, n::Integer, k::Integer, table::Table{T}) where {T<:
     @assert(n >= 0)
     @assert(k >= 1)
 
-    t = tromp!(m, n, table)
+    t = grygiel_lescanne!(m, n, table)
     @assert(t >= k)
     
     if m >= n - 1 && k == t
         return Var(n - 1)
-    elseif k <= tromp!(m + 1, n - 2, table)
+    elseif k <= grygiel_lescanne!(m + 1, n - 2, table)
         return Abs(unrank!(m + 1, n - 2, k, table))
     else
-        return unrank_app!(m, n - 2, 0, k - tromp!(m + 1, n - 2, table), table)
+        return unrank_app!(m, n - 2, 0, k - grygiel_lescanne!(m + 1, n - 2, table), table)
     end
 end
 
 
 function unrank_app!(m::Integer, n::Integer, j::Integer, r::Integer,
                      table::Table{T}) where {T<:Integer}
-    tmnj = tromp!(m, n - j, table)
-    tmjtmnj = tromp!(m, j, table) * tmnj
+    tmnj = grygiel_lescanne!(m, n - j, table)
+    tmjtmnj = grygiel_lescanne!(m, j, table) * tmnj
 
     if r <= tmjtmnj
         dv, rm = divrem(r - 1, tmnj)
@@ -121,7 +121,7 @@ function terms(m, n, ::Type{T} = Int) where {T<:Integer}
     @assert(n >= 0)
 
     table = Table{T}()
-    tromp!(m, n, table)
+    grygiel_lescanne!(m, n, table)
     TermsIterator{T}(m, n, table)
 end
 
@@ -147,4 +147,4 @@ Base.eltype(::Type{<:TermsIterator}) = Term
 
 Base.getindex(iter::TermsIterator, i::Integer) = unrank!(iter.m, iter.n, i, iter.table)
 Base.firstindex(iter::TermsIterator) = 1
-Base.lastindex(iter::TermsIterator) = tromp!(iter.m, iter.n, iter.table)
+Base.lastindex(iter::TermsIterator) = grygiel_lescanne!(iter.m, iter.n, iter.table)
