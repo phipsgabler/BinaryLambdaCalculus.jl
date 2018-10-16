@@ -18,10 +18,11 @@ const Table{T} = Dict{Tuple{Int, Int}, T}
 
 
 """
-     grygiel_lescanne{T}(m::Integer, n::Integer[, ::Type{T}])::T
+     grygiel_lescanne(m, n[, ::Type{T}]) where {T}
 
 Calculate the number of De Bruijn terms of binary size `n`, with at most `m` free variables.  This
-corresponds to the series Sₘₙ from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf).
+corresponds to the series Sₘₙ from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf).  The type
+`T` can be used to specify the integer type used during the recursive construction.
 """
 function grygiel_lescanne(m::Integer, n::Integer, ::Type{T} = Int) where {T<:Integer}
     return grygiel_lescanne!(m, n, Table{T}())
@@ -29,7 +30,7 @@ end
 
 
 """
-    grygiel_lescanne!{T}(m::Integer, n::Integer, table::Table{T})::T
+    grygiel_lescanne!(m, n, table)
 
 Calculate the number of de Bruijn terms of binary size `n`, with at most `m` free variables.  This
 corresponds to the series Sₘₙ from [their paper](https://arxiv.org/pdf/1511.05334v1.pdf).
@@ -56,10 +57,11 @@ end
 
 
 """
-    unrank{T}(m::Integer, n::Integer, k::Integer[, ::Type{T}])::IndexedLambda
+    unrank{T}(m::Integer, n::Integer, k::Integer[, ::Type{T}]) -> Term
 
 Calculate the `k`-th De Bruijn term of binary size `n`, with at most `m` free variables (indices
-start at 1).
+start at 1).  The type `T` can be used to specify the integer type used during the recursive
+construction.
 """
 function unrank(m::Integer, n::Integer, k::Integer, ::Type{T} = Int) where {T<:Integer}
     unrank!(m, n, k, Table{T}())
@@ -67,7 +69,7 @@ end
 
 
 """
-    unrank!{T}(m::Integer, n::Integer, k::Integer, table::Table{T})::IndexedLambda
+    unrank!{T}(m::Integer, n::Integer, k::Integer, table::Table{T}) -> Term
 
 Calculate the `k`-th De Bruijn term of binary size `n`, with at most `m` free variables,
 using tabulated values for Sₙₘ.
