@@ -50,13 +50,10 @@ true
 (And `terms` is an iterator, of course.)
 
 
-For more examples, see the [examples notebook](./examples.ipynb), but they might be outdated.
-
-
 ## Installation
 
 ```
-Pkg.clone("git@github.com:phipsgabler/BinaryLambdaCalculus.jl.git")
+Pkg.add("git@github.com:phipsgabler/BinaryLambdaCalculus.jl.git")
 ```
 
 ## License ##
