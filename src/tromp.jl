@@ -1,6 +1,7 @@
 # Implementations of combinatorial functions from "Counting and Generating Terms in the Binary
 # Lambda Calculus".
 
+import Base
 
 export tromp, tromp!, unrank, unrank!, terms
 
@@ -22,7 +23,7 @@ const Table{T} = Dict{Tuple{Int, Int}, T}
 Calculate the number of De Bruijn terms of binary size `n`, with at most `m` free variables.  This
 corresponds to the series Sₘₙ from [this paper](https://arxiv.org/pdf/1511.05334v1.pdf).
 """
-function tromp{T<:Integer}(m::Integer, n::Integer, ::Type{T} = Int)::T
+function tromp(m::Integer, n::Integer, ::Type{T} = Int) where {T<:Integer}
     return tromp!(m, n, Table{T}())
 end
 
@@ -36,7 +37,7 @@ corresponds to the series Sₘₙ from [this paper](https://arxiv.org/pdf/1511.0
 As a side effect, fill `table` with recursive calls whose entries correspond to `tromp(n, m)`.  This
 method should be used instead of repeatedly calling `tromp`.
 """
-function tromp!{T<:Integer}(m::Integer, n::Integer, table::Table{T})::T
+function tromp!(m::Integer, n::Integer, table::Table{T}) where {T<:Integer}
     @assert(m >= 0)
     @assert(n >= 0)
 
@@ -60,7 +61,7 @@ end
 Calculate the `k`-th De Bruijn term of binary size `n`, with at most `m` free variables (indices
 start at 1).
 """
-function unrank{T<:Integer}(m::Integer, n::Integer, k::Integer, ::Type{T} = Int)::IndexedLambda
+function unrank(m::Integer, n::Integer, k::Integer, ::Type{T} = Int) where {T<:Integer}
     unrank!(m, n, k, Table{T}())
 end
 
@@ -74,7 +75,7 @@ using tabulated values for Sₙₘ.
 This function should be used for repeated unrankings, so that the series Sₙₘ does
 not have to be recomputed every time.
 """
-function unrank!{T<:Integer}(m::Integer, n::Integer, k::Integer, table::Table{T})::IndexedLambda
+function unrank!(m::Integer, n::Integer, k::Integer, table::Table{T}) where {T<:Integer}
     @assert(m >= 0)
     @assert(n >= 0)
     @assert(k >= 1)
@@ -83,23 +84,23 @@ function unrank!{T<:Integer}(m::Integer, n::Integer, k::Integer, table::Table{T}
     @assert(t >= k)
     
     if m >= n - 1 && k == t
-        return IVar(n - 1)
+        return Var(n - 1)
     elseif k <= tromp!(m + 1, n - 2, table)
-        return IAbs(unrank!(m + 1, n - 2, k, table))
+        return Abs(unrank!(m + 1, n - 2, k, table))
     else
         return unrank_app!(m, n - 2, 0, k - tromp!(m + 1, n - 2, table), table)
     end
 end
 
 
-function unrank_app!{T<:Integer}(m::Integer, n::Integer, j::Integer, r::Integer,
-                                 table::Table{T})::IndexedLambda
+function unrank_app!(m::Integer, n::Integer, j::Integer, r::Integer,
+                     table::Table{T}) where {T<:Integer}
     tmnj = tromp!(m, n - j, table)
     tmjtmnj = tromp!(m, j, table) * tmnj
 
     if r <= tmjtmnj
         dv, rm = divrem(r - 1, tmnj)
-        return IApp(unrank!(m, j, dv + 1, table), unrank!(m, n - j, rm + 1, table))
+        return App(unrank!(m, j, dv + 1, table), unrank!(m, n - j, rm + 1, table))
     else
         return unrank_app!(m, n, j + 1, r - tmjtmnj, table)
     end
@@ -111,11 +112,11 @@ end
 #################
 
 """
-    terms{T<:Integer}(m::Integer, n::Integer[, ::Type{T}])
+    terms(m::Integer, n::Integer[, ::Type{T}])
 
 An iterator for all de Bruijn terms of size `n` with at most `m` free variables.
 """
-function terms{T<:Integer}(m::Integer, n::Integer, ::Type{T} = Int)
+function terms(m, n, ::Type{T} = Int) where {T<:Integer}
     @assert(m >= 0)
     @assert(n >= 0)
 
@@ -125,23 +126,25 @@ function terms{T<:Integer}(m::Integer, n::Integer, ::Type{T} = Int)
 end
 
 
-immutable TermsIterator{T<:Integer}
-    m::Integer
-    n::Integer
+struct TermsIterator{T<:Integer}
+    m::Int
+    n::Int
     table::Table{T}
 end
 
-const TermsIteratorState = Int
+function Base.iterate(iter::TermsIterator, state = 1)
+    if state ≤ iter.table[(iter.m, iter.n)]
+        return (unrank!(iter.m, iter.n, state, iter.table), state + 1)
+    else
+        return nothing
+    end
+end
 
-Base.start{T}(::TermsIterator{T}) = TermsIteratorState(1)
-Base.next{T}(it::TermsIterator{T}, state::TermsIteratorState) =
-    (unrank!(it.m, it.n, state, it.table), state + 1)
-Base.done{T}(it::TermsIterator{T}, state::TermsIteratorState) =
-    state > it.table[(it.m, it.n)]
+Base.IteratorSize(::Type{<:TermsIterator}) = Base.HasLength()
+Base.length(iter::TermsIterator) = iter.table[(iter.m, iter.n)]
+Base.IteratorEltype(::Type{<:TermsIterator}) = Base.HasEltype()
+Base.eltype(::Type{<:TermsIterator}) = Term
 
-Base.iteratorsize{T}(::Type{TermsIterator{T}}) = Base.HasLength()
-Base.length{T}(t::TermsIterator{T}) = t.table[(t.m, t.n)]
-Base.iteratoreltype{T}(::Type{TermsIterator{T}}) = Base.HasEltype()
-Base.eltype{T}(::Type{TermsIterator{T}}) = IndexedLambda
-
-Base.getindex{T}(it::TermsIterator{T}, i::Integer) = unrank!(it.m, it.n, i, it.table)
+Base.getindex(iter::TermsIterator, i::Integer) = unrank!(iter.m, iter.n, i, iter.table)
+Base.firstindex(iter::TermsIterator) = 1
+Base.lastindex(iter::TermsIterator) = tromp!(iter.m, iter.n, iter.table)

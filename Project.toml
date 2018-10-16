@@ -4,4 +4,11 @@ authors = ["Philipp Gabler <phipsgabler@users.noreply.github.com>"]
 version = "0.1.0"
 
 [deps]
+LambdaCalculus = "ad466878-c6de-11e8-03ce-5d0f191b70b9"
 PEG = "12d937ae-5f68-53be-93c9-3a6f997a20a8"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
