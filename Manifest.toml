@@ -10,7 +10,7 @@ deps = ["LinearAlgebra", "Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[LambdaCalculus]]
-git-tree-sha1 = "d4dc90e87cee2f62bcac20966e9b73aaa31aebb8"
+git-tree-sha1 = "ba36a9d091200b352f8e77594bf82243befac7e0"
 repo-rev = "master"
 repo-url = "https://github.com/phipsgabler/LambdaCalculus.jl"
 uuid = "ad466878-c6de-11e8-03ce-5d0f191b70b9"

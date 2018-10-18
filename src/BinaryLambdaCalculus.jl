@@ -1,6 +1,7 @@
 module BinaryLambdaCalculus
 
 include("coding.jl")
-include("tromp.jl")
+include("grygiel_lescanne.jl")
+include("sampling.jl")
 
 end
