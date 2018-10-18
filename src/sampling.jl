@@ -32,11 +32,13 @@ const large_terms = GeneralTermSampler(ρ, p₁ρ, p₂ρ)
 
 
 function rand_index(rng::AbstractRNG, s::GeneralTermSampler)
-    if rand(rng) < s.x
-        return rand_index(rng, s) + 1
-    else
-        return 1
+    result = 1
+    
+    while rand(rng) < s.x
+        result += 1
     end
+
+    return result
 end
 
 function rand(rng::AbstractRNG, s::GeneralTermSampler)
@@ -60,7 +62,7 @@ end
 
 function rand_ceiled(rng::AbstractRNG, s::BoundedTermSampler)::Union{Term, Nothing}
     p = rand(rng)
-    
+
     if p < p₁ρ
         i = rand_index(rng, large_terms)
         return i < s.upper ? Var(i) : nothing
@@ -83,7 +85,7 @@ end
 
 function rand(rng::AbstractRNG, s::BoundedTermSampler)
     candidate = rand_ceiled(rng, s)
-    
+
     while candidate == nothing || length(candidate) < s.lower
         candidate = rand_ceiled(rng, s)
     end
