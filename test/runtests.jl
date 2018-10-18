@@ -20,16 +20,22 @@ end
 
     S₀ₙ = [0, 0, 0, 0, 1, 0, 1, 1, 2, 1, 6, 5, 13, 14, 37, 44, 101, 134, 298, 431]
     @test all(S₀ₙ[i+1] == S(0, i) for i = 0:19) # ensure the reference is correct...
-    @test [tromp(0, n) for n = 0:19] == S₀ₙ
+    @test [grygiel_lescanne(0, n) for n = 0:19] == S₀ₙ
 
     for m = 1:3, n = 0:20
-        @test tromp(m, n) == S(m, n)
+        @test grygiel_lescanne(m, n) == S(m, n)
         @test length(terms(m, n)) == S(m, n)
     end
 
     let m = 3, n = 100,
-        s = (a, b) -> tromp(a, b, BigInt)
+        s = (a, b) -> grygiel_lescanne(a, b, BigInt)
         @test s(m, n) == s(m + 1, n - 2) + sum(s(m, k) * s(m, n - 2 - k) for k = 0:(n-2))
+    end
+end
+
+@testset "Sampling" begin
+    for t in rand(BoundedTermSampler(20, 30), 100)
+        @test 20 ≤ length(t) ≤ 30
     end
 end
 
