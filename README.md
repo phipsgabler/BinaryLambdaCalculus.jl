@@ -50,6 +50,17 @@ true
 (And `terms` is an iterator, of course.)
 
 
+## Boltzmann samplers ##
+
+Samplers for De Bruijn terms use the Boltzmann sampling technique described in the Grygiel/Lescanne
+paper.  There are two instances of `Random.Sampler{Term}`:
+
+- `GeneralTermSampler(x)` is a general Boltzmann sampler with parameter x.  There’s a constant
+  `large_terms`, which chooses `x` such that the expected size of the terms is infinite.
+- `BoundedTermSampler(lower, upper)` uses rejection sampling to ensure a length between `lower` and
+  `upper`. 
+  
+
 ## Installation
 
 ```
