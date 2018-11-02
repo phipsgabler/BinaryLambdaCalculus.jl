@@ -32,10 +32,3 @@ end
         @test s(m, n) == s(m + 1, n - 2) + sum(s(m, k) * s(m, n - 2 - k) for k = 0:(n-2))
     end
 end
-
-@testset "Sampling" begin
-    for t in rand(BoundedTermSampler(20, 30), 100)
-        @test 20 ≤ length(t) ≤ 30
-    end
-end
-
